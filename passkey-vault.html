@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PassVault — Encriptación Segura</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --success: #00ff88;
+    --danger: #ff4466;
+    --text: #e8e8f0;
+    --muted: #6666880;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Ambient glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(124,58,237,0.15) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .logo-text {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .tagline {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #555570;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 32px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: #666680;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .tab.active {
+    background: var(--surface2);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  .tab:hover:not(.active) { color: #9999bb; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* Form elements */
+  .field {
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: #888899;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: none;
+  }
+
+  input:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+  }
+
+  textarea { min-height: 90px; line-height: 1.6; }
+
+  /* Password input wrapper */
+  .pass-wrapper {
+    position: relative;
+  }
+
+  .pass-wrapper input {
+    padding-right: 48px;
+  }
+
+  .toggle-pass {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #666680;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 16px;
+    transition: color 0.2s;
+  }
+
+  .toggle-pass:hover { color: var(--accent); }
+
+  /* Strength meter */
+  .strength-bar {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  .strength-seg {
+    height: 3px;
+    flex: 1;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .strength-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
+
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 12px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent2), #4f46e5);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(124,58,237,0.4);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Result box */
+  .result-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    word-break: break-all;
+    line-height: 1.7;
+    color: var(--accent);
+    display: none;
+    position: relative;
+    overflow: hidden;
+    margin-top: 16px;
+  }
+
+  .result-box.show { display: block; }
+
+  .result-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,229,255,0.03), transparent);
+    pointer-events: none;
+  }
+
+  /* Copy button */
+  .copy-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .btn-copy {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .btn-copy:hover {
+    border-color: var(--success);
+    color: var(--success);
+  }
+
+  .btn-copy.copied {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(0,255,136,0.05);
+  }
+
+  /* Alert / notifications */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin-top: 16px;
+    display: none;
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+  }
+
+  .alert.show { display: block; }
+  .alert.success { background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25); color: var(--success); }
+  .alert.error { background: rgba(255,68,102,0.08); border: 1px solid rgba(255,68,102,0.25); color: var(--danger); }
+  .alert.info { background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.2); color: var(--accent); }
+
+  /* Decrypted secret display */
+  .secret-reveal {
+    background: var(--bg);
+    border: 2px solid var(--success);
+    border-radius: 14px;
+    padding: 24px;
+    text-align: center;
+    display: none;
+    margin-top: 16px;
+    box-shadow: 0 0 32px rgba(0,255,136,0.1);
+  }
+
+  .secret-reveal.show { display: block; }
+
+  .secret-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--success);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .secret-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    color: var(--text);
+    letter-spacing: 2px;
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  /* Info badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: rgba(124,58,237,0.12);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #9d7fea;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .info-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  /* Panel show/hide */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Separator */
+  .sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  /* URL detected banner */
+  .url-banner {
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  .url-banner-icon { font-size: 20px; }
+
+  /* Loading animation */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading { display: inline-block; animation: spin 0.8s linear infinite; }
+
+  /* Pulse for active dot */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .card-title::before { animation: pulse 2s ease-in-out infinite; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #33334d;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    line-height: 2;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔐</div>
+      <span class="logo-text">PassVault</span>
+    </div>
+    <div class="tagline">Encriptación AES-256 · 100% Client-Side · Zero Storage</div>
+  </header>
+
+  <!-- Detected encrypted URL banner -->
+  <div class="url-banner" id="urlBanner" style="display:none">
+    <span class="url-banner-icon">🔗</span>
+    <div>
+      <strong>URL con secreto detectada.</strong> Ingresá la clave para desencriptar.
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tabEnc" onclick="switchTab('encrypt')">🔒 Encriptar</button>
+    <button class="tab" id="tabDec" onclick="switchTab('decrypt')">🔓 Desencriptar</button>
+  </div>
+
+  <!-- ENCRYPT PANEL -->
+  <div class="panel active" id="panelEncrypt">
+
+    <div class="info-row">
+      <span class="badge">🛡 AES-256-GCM</span>
+      <span class="badge">🔑 PBKDF2-SHA256</span>
+      <span class="badge">📦 Zero Server</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Secreto a proteger</div>
+
+      <div class="field">
+        <label>Passkey / Mensaje secreto</label>
+        <textarea id="encSecret" placeholder="Ingresá la passkey, contraseña o mensaje que querés proteger..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Clave de encriptación</label>
+        <div class="pass-wrapper">
+          <input type="password" id="encKey" placeholder="Clave que solo vos y el destinatario conocen..." oninput="checkStrength()">
+          <button class="toggle-pass" onclick="toggleVis('encKey', this)">👁</button>
+        </div>
+        <div class="strength-bar" id="strengthBar">
+          <div class="strength-seg" id="s1"></div>
+          <div class="strength-seg" id="s2"></div>
+          <div class="strength-seg" id="s3"></div>
+          <div class="strength-seg" id="s4"></div>
+        </div>
+        <div class="strength-label" id="strengthLabel" style="color:#444460">—</div>
+      </div>
+
+      <button class="btn btn-primary" onclick="encrypt()">🔒 Generar URL encriptada</button>
+
+      <div class="alert" id="encAlert"></div>
+    </div>
+
+    <!-- Result -->
+    <div class="card" id="encResult" style="display:none">
+      <div class="card-title">URL generada</div>
+      <div class="result-box show" id="encUrl"></div>
+      <div class="copy-row">
+        <button class="btn-copy" id="btnCopyUrl" onclick="copyText('encUrl', 'btnCopyUrl')">📋 Copiar URL</button>
+        <button class="btn-copy" onclick="shareUrl()">↗ Compartir</button>
+      </div>
+      <div class="alert info show" style="margin-top:12px">
+        ⚠ Compartí la URL por un canal y la clave por otro canal separado.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DECRYPT PANEL -->
+  <div class="panel" id="panelDecrypt">
+
+    <div class="card">
+      <div class="card-title">Desencriptar secreto</div>
+
+      <div class="field">
+        <label>URL encriptada</label>
+        <textarea id="decUrl" placeholder="Pegá la URL completa que recibiste..." oninput="parseUrlInput()"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Clave de encriptación</label>
+        <div class="pass-wrapper">
+          <input type="password" id="decKey" placeholder="La clave acordada...">
+          <button class="toggle-pass" onclick="toggleVis('decKey', this)">👁</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="decrypt()">🔓 Desencriptar</button>
+
+      <div class="alert" id="decAlert"></div>
+    </div>
+
+    <!-- Revealed secret -->
+    <div class="secret-reveal" id="secretReveal">
+      <div class="secret-label">✅ Secreto desencriptado</div>
+      <div class="secret-value" id="secretValue"></div>
+      <hr class="sep">
+      <div class="copy-row" style="max-width:240px;margin:0 auto">
+        <button class="btn-copy" id="btnCopySecret" onclick="copyText('secretValue', 'btnCopySecret')">📋 Copiar</button>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    PassVault · Todo el procesamiento ocurre en tu navegador<br>
+    Ningún dato es enviado ni almacenado en ningún servidor
+  </footer>
+
+</div>
+
+<script>
+// ============================================================
+// CRYPTO ENGINE — AES-256-GCM + PBKDF2
+// ============================================================
+
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+async function deriveKey(password, salt) {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+function toBase64url(bytes) {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function fromBase64url(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return Uint8Array.from(atob(str), c => c.charCodeAt(0));
+}
+
+async function encryptPayload(secret, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveKey(password, salt);
+
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    enc.encode(secret)
+  );
+
+  // Pack: salt(16) + iv(12) + ciphertext
+  const packed = new Uint8Array(16 + 12 + ciphertext.byteLength);
+  packed.set(salt, 0);
+  packed.set(iv, 16);
+  packed.set(new Uint8Array(ciphertext), 28);
+  return toBase64url(packed);
+}
+
+async function decryptPayload(encoded, password) {
+  const packed = fromBase64url(encoded);
+  const salt       = packed.slice(0, 16);
+  const iv         = packed.slice(16, 28);
+  const ciphertext = packed.slice(28);
+
+  const key = await deriveKey(password, salt);
+
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext
+  );
+  return dec.decode(plaintext);
+}
+
+// ============================================================
+// UI LOGIC
+// ============================================================
+
+function switchTab(tab) {
+  document.getElementById('panelEncrypt').classList.toggle('active', tab === 'encrypt');
+  document.getElementById('panelDecrypt').classList.toggle('active', tab === 'decrypt');
+  document.getElementById('tabEnc').classList.toggle('active', tab === 'encrypt');
+  document.getElementById('tabDec').classList.toggle('active', tab === 'decrypt');
+}
+
+function toggleVis(id, btn) {
+  const el = document.getElementById(id);
+  const isPass = el.type === 'password';
+  el.type = isPass ? 'text' : 'password';
+  btn.textContent = isPass ? '🙈' : '👁';
+}
+
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `alert show ${type}`;
+}
+
+function hideAlert(id) {
+  document.getElementById(id).className = 'alert';
+}
+
+function checkStrength() {
+  const key = document.getElementById('encKey').value;
+  const segs = [document.getElementById('s1'), document.getElementById('s2'),
+                document.getElementById('s3'), document.getElementById('s4')];
+  const label = document.getElementById('strengthLabel');
+
+  let score = 0;
+  if (key.length >= 8) score++;
+  if (key.length >= 14) score++;
+  if (/[A-Z]/.test(key) && /[a-z]/.test(key)) score++;
+  if (/[0-9]/.test(key) && /[^A-Za-z0-9]/.test(key)) score++;
+
+  const colors = ['#ff4466', '#ff9944', '#ffcc44', '#00ff88'];
+  const labels = ['MUY DÉBIL', 'DÉBIL', 'BUENA', 'FUERTE'];
+  const labelColors = ['#ff4466', '#ff9944', '#ffcc44', '#00ff88'];
+
+  segs.forEach((s, i) => {
+    s.style.background = i < score ? colors[score - 1] : 'var(--border)';
+  });
+
+  if (key.length === 0) {
+    label.textContent = '—';
+    label.style.color = '#444460';
+  } else {
+    label.textContent = labels[score - 1] || 'MUY DÉBIL';
+    label.style.color = labelColors[score - 1] || '#ff4466';
+  }
+}
+
+async function encrypt() {
+  const secret = document.getElementById('encSecret').value.trim();
+  const key    = document.getElementById('encKey').value;
+
+  if (!secret) return showAlert('encAlert', '❌ Ingresá un secreto a encriptar.', 'error');
+  if (!key)    return showAlert('encAlert', '❌ Ingresá una clave de encriptación.', 'error');
+  if (key.length < 6) return showAlert('encAlert', '⚠ La clave es muy corta. Usá al menos 8 caracteres.', 'error');
+
+  hideAlert('encAlert');
+
+  try {
+    const encoded = await encryptPayload(secret, key);
+    const url = `${location.origin}${location.pathname}#v=${encoded}`;
+
+    document.getElementById('encUrl').textContent = url;
+    document.getElementById('encResult').style.display = 'block';
+    showAlert('encAlert', '✅ URL generada exitosamente.', 'success');
+  } catch (e) {
+    showAlert('encAlert', '❌ Error al encriptar: ' + e.message, 'error');
+  }
+}
+
+async function decrypt() {
+  let url = document.getElementById('decUrl').value.trim();
+  const key = document.getElementById('decKey').value;
+
+  if (!url) return showAlert('decAlert', '❌ Pegá la URL encriptada.', 'error');
+  if (!key) return showAlert('decAlert', '❌ Ingresá la clave de desencriptación.', 'error');
+
+  hideAlert('decAlert');
+  document.getElementById('secretReveal').classList.remove('show');
+
+  // Extract the hash from the URL
+  let encoded = '';
+  try {
+    // Support full URL or just the fragment
+    const hashIdx = url.indexOf('#v=');
+    if (hashIdx !== -1) {
+      encoded = url.substring(hashIdx + 3);
+    } else if (!url.includes('://') && !url.includes('#')) {
+      encoded = url; // raw payload pasted directly
+    } else {
+      throw new Error('No se encontró el fragmento #v= en la URL.');
+    }
+  } catch(e) {
+    return showAlert('decAlert', '❌ URL inválida: ' + e.message, 'error');
+  }
+
+  try {
+    const secret = await decryptPayload(encoded, key);
+    document.getElementById('secretValue').textContent = secret;
+    document.getElementById('secretReveal').classList.add('show');
+    showAlert('decAlert', '✅ Secreto desencriptado correctamente.', 'success');
+  } catch (e) {
+    showAlert('decAlert', '❌ Clave incorrecta o datos corruptos.', 'error');
+  }
+}
+
+function copyText(sourceId, btnId) {
+  const text = document.getElementById(sourceId).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(btnId);
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copiado!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function shareUrl() {
+  const url = document.getElementById('encUrl').textContent;
+  if (navigator.share) {
+    navigator.share({ title: 'PassVault — Secreto encriptado', url });
+  } else {
+    copyText('encUrl', 'btnCopyUrl');
+  }
+}
+
+function parseUrlInput() {
+  // Auto-trim whitespace
+  const el = document.getElementById('decUrl');
+  el.value = el.value.trim();
+}
+
+// ============================================================
+// AUTO-DETECT encrypted URL on load
+// ============================================================
+
+window.addEventListener('load', () => {
+  const hash = location.hash;
+  if (hash.startsWith('#v=')) {
+    const encoded = hash.slice(3);
+    if (encoded.length > 10) {
+      // Switch to decrypt tab and fill in the URL
+      switchTab('decrypt');
+      document.getElementById('decUrl').value = location.href;
+      document.getElementById('urlBanner').style.display = 'flex';
+    }
+  }
+});
+</script>
+</body>
+</html>
