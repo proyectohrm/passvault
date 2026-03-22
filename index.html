@@ -827,10 +827,20 @@ window.addEventListener('load', () => {
   if (hash.startsWith('#v=')) {
     const encoded = hash.slice(3);
     if (encoded.length > 10) {
-      // Switch to decrypt tab and fill in the URL
-      switchTab('decrypt');
-      document.getElementById('decUrl').value = location.href;
+      // Ocultar tabs y panel de encriptación, mostrar solo desencriptación
+      document.querySelector('.tabs').style.display = 'none';
       document.getElementById('urlBanner').style.display = 'flex';
+      switchTab('decrypt');
+
+      // Pre-llenar la URL y hacerla readonly
+      const decUrl = document.getElementById('decUrl');
+      decUrl.value = location.href;
+      decUrl.readOnly = true;
+      decUrl.style.opacity = '0.6';
+      decUrl.style.cursor = 'default';
+
+      // Foco directo en la clave
+      setTimeout(() => document.getElementById('decKey').focus(), 100);
     }
   }
 });
